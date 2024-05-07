@@ -18,6 +18,7 @@ import {
   Stock,
   Purchase
 } from '@/components/stocks'
+import { trace } from '@opentelemetry/api'
 
 import { z } from 'zod'
 import { EventsSkeleton } from '@/components/stocks/events-skeleton'
@@ -35,6 +36,7 @@ import { saveChat } from '@/app/actions'
 import { SpinnerMessage, UserMessage } from '@/components/stocks/message'
 import { Chat } from '@/lib/types'
 import { auth } from '@/auth'
+import { register } from '@/instrumentation'
 
 async function confirmPurchase(symbol: string, price: number, amount: number) {
   'use server'
@@ -119,6 +121,17 @@ async function confirmPurchase(symbol: string, price: number, amount: number) {
 
 async function submitUserMessage(content: string) {
   'use server'
+  register()
+  const lcOpenAi = require('@langchain/openai')
+  const ChatOpenAI = lcOpenAi.ChatOpenAI
+  const chatModel = new ChatOpenAI({})
+
+  const response = await chatModel.invoke('Hello! How are you?')
+  console.log('test--response', response)
+  const span = trace.getTracer('sample-app').startSpan('your-operation')
+
+  span.setAttribute('test', 'parker')
+  span.end()
 
   const aiState = getMutableAIState<typeof AI>()
 
