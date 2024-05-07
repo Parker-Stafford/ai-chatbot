@@ -1,51 +1,7 @@
-import { type Configuration, registerOTel } from '@vercel/otel'
-import {
-  SimpleSpanProcessor,
-  ConsoleSpanExporter
-} from '@opentelemetry/sdk-trace-base'
-import { OTLPTraceExporter as ProtoOTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
-import { OpenAIInstrumentation } from '@arizeai/openinference-instrumentation-openai'
-import { LangChainInstrumentation } from '@arizeai/openinference-instrumentation-langchain'
-import * as CallbackManagerModule from '@langchain/core/callbacks/manager'
-export function register() {
-  const lci = new LangChainInstrumentation()
-  console.log('test--', CallbackManagerModule, lci)
-  lci.manuallyInstrument(CallbackManagerModule)
-  let config: Configuration = {
-    serviceName: 'sample-app',
-    instrumentationConfig: {},
-    instrumentations: [new OpenAIInstrumentation(), lci],
-    attributesFromHeaders: {
-      client: 'X-Client'
-    }
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    await import('./instrumentation-node')
   }
-  if (process.env.TEST_FETCH_RESOURCE_NAME_TEMPLATE) {
-    console.log(
-      'Custom fetch resourceNameTemplate:',
-      process.env.TEST_FETCH_RESOURCE_NAME_TEMPLATE
-    )
-    config = {
-      ...config,
-      instrumentationConfig: {
-        ...config.instrumentationConfig
-      }
-    }
-  }
-  console.log('test------------spanscomin')
-  config = {
-    ...config,
-    spanProcessors: [
-      new SimpleSpanProcessor(
-        new ProtoOTLPTraceExporter({
-          // This is the url where your phoenix server is running
-          url: 'http://localhost:6006/v1/traces'
-        })
-      ),
-      new SimpleSpanProcessor(new ConsoleSpanExporter()),
-      ...(config.spanProcessors ?? [])
-    ]
-  }
-  registerOTel(config)
 
   /*
   const origConsoleError = console.error;

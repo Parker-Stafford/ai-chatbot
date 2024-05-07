@@ -36,7 +36,9 @@ import { saveChat } from '@/app/actions'
 import { SpinnerMessage, UserMessage } from '@/components/stocks/message'
 import { Chat } from '@/lib/types'
 import { auth } from '@/auth'
-import { register } from '@/instrumentation'
+import { ChatOpenAI } from '@langchain/openai'
+import { ConsoleCallbackHandler } from '@langchain/core/tracers/console'
+import { LangChainTracer } from '@arizeai/openinference-instrumentation-langchain/dist/esnext/tracer'
 
 async function confirmPurchase(symbol: string, price: number, amount: number) {
   'use server'
@@ -121,17 +123,13 @@ async function confirmPurchase(symbol: string, price: number, amount: number) {
 
 async function submitUserMessage(content: string) {
   'use server'
-  register()
-  const lcOpenAi = require('@langchain/openai')
-  const ChatOpenAI = lcOpenAi.ChatOpenAI
-  const chatModel = new ChatOpenAI({})
+  debugger
+  const tracer = trace.getTracer('sample-app')
+  const chatModel = new ChatOpenAI({
+    callbacks: [new LangChainTracer(tracer)]
+  })
 
-  const response = await chatModel.invoke('Hello! How are you?')
-  console.log('test--response', response)
-  const span = trace.getTracer('sample-app').startSpan('your-operation')
-
-  span.setAttribute('test', 'parker')
-  span.end()
+  const response = await chatModel.invoke(content)
 
   const aiState = getMutableAIState<typeof AI>()
 
